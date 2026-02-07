@@ -1,5 +1,12 @@
 import * as path from 'path';
 
+import { ExerciseTypeEntity } from '@/api/curriculum/entities/exercise-type.entity';
+import { ExerciseEntity } from '@/api/curriculum/entities/exercise.entity';
+import { FormatEntity } from '@/api/curriculum/entities/format.entity';
+import { GradeEntity } from '@/api/curriculum/entities/grade.entity';
+import { LessonEntity } from '@/api/curriculum/entities/lesson.entity';
+import { TextbookEntity } from '@/api/curriculum/entities/textbook.entity';
+import { UnitEntity } from '@/api/curriculum/entities/unit.entity';
 import 'reflect-metadata';
 import { DataSource, type DataSourceOptions } from 'typeorm';
 import { type SeederOptions } from 'typeorm-extension';
@@ -19,7 +26,15 @@ export const AppDataSource = new DataSource({
   keepConnectionAlive: true,
   logging: process.env.NODE_ENV !== 'production',
   // Only AbstractEntity for migrations - User, Session, and Post are excluded
-  entities: [],
+  entities: [
+    GradeEntity,
+    TextbookEntity,
+    UnitEntity,
+    LessonEntity,
+    FormatEntity,
+    ExerciseTypeEntity,
+    ExerciseEntity,
+  ],
   migrations: [
     path.join(process.cwd(), 'src/database/migrations/**/*{.ts,.js}'),
   ],
