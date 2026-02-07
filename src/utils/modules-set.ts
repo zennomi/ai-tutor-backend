@@ -12,9 +12,11 @@ import { BullModule } from '@nestjs/bullmq';
 import { CacheModule } from '@nestjs/cache-manager';
 import { ModuleMetadata } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ServeStaticModule } from '@nestjs/serve-static';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { redisStore } from 'cache-manager-ioredis-yet';
 import { LoggerModule } from 'nestjs-pino';
+import path from 'path';
 import { DataSource, DataSourceOptions } from 'typeorm';
 import loggerFactory from './logger-factory';
 
@@ -88,6 +90,15 @@ function generateModulesSet() {
     inject: [ConfigService],
   });
 
+  // Serve static files from uploads directory
+  const serveStaticModule = ServeStaticModule.forRoot({
+    rootPath: path.join(process.cwd(), 'uploads'),
+    serveRoot: '/uploads',
+    serveStaticOptions: {
+      index: false,
+    },
+  });
+
   const modulesSet = process.env.MODULES_SET || 'monolith';
 
   switch (modulesSet) {
@@ -100,6 +111,7 @@ function generateModulesSet() {
         dbModule,
         loggerModule,
         MailModule,
+        serveStaticModule,
       ];
       break;
     case 'api':
@@ -110,6 +122,7 @@ function generateModulesSet() {
         dbModule,
         loggerModule,
         MailModule,
+        serveStaticModule,
       ];
       break;
     case 'background':

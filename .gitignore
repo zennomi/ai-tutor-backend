@@ -74,3 +74,8 @@ docs/.vuepress/dist
 
 # Docker data
 docker-data/
+
+# Uploads
+uploads/*
+!uploads/.gitkeep
+!uploads/renders/.gitkeep
