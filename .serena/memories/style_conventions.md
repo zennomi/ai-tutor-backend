@@ -1,0 +1,12 @@
+# Style & Conventions
+- TypeScript strictness; avoid `any`. Use explicit types.
+- Naming: camelCase for files/vars/functions; PascalCase for classes/interfaces/types/enums; UPPER_SNAKE_CASE for constants. Do not prefix interfaces with I.
+- Import order: polyfills, node builtins, external, internal path aliases (@/...), parent, sibling; alphabetize within groups; use `import type` for types.
+- Formatting: 2 spaces, single quotes, semicolons, space before type annotations.
+- Functions: single responsibility, prefer <=2 args (use object params otherwise), avoid flags, default args over short-circuiting, minimize side effects.
+- Classes: small, SRP, composition over inheritance, proper access modifiers, chainable when appropriate.
+- Types: use `type` for unions/intersections; `interface` for extends/implements.
+- Null/undefined: prefer undefined; use == null for null-or-undefined checks.
+- Pagination, DTOs follow Nest patterns; validation with class-validator; Swagger decorators for APIs.
+- No commented/dead code; minimal comments; use TODO for future work.
+- Path aliases in tsconfig: @/api, @/common, @/config, @/database, etc.

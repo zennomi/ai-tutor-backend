@@ -1,0 +1,17 @@
+# Suggested Commands
+- Install deps: `pnpm install`
+- Build (typecheck): `pnpm build`
+- Start dev: `pnpm start:dev`
+- Start prod (built): `pnpm start:prod`
+- Lint: `pnpm lint`
+- Format: `pnpm format`
+- Test unit: `pnpm test`
+- Test watch: `pnpm test:watch`
+- Test coverage: `pnpm test:cov`
+- E2E tests: `pnpm test:e2e`
+- Migrations: `pnpm migration:generate --pretty`, `pnpm migration:up`, `pnpm migration:down`, `pnpm migration:show`
+- Seeds: `pnpm seed:create`, `pnpm seed:run`
+- DB create/drop (typeorm-extension): `pnpm db:create`, `pnpm db:drop`
+- JWT helper: `pnpm jwt:generate`
+- Docs (vuepress): `pnpm docs:dev`, `pnpm docs:build`
+- TypeORM CLI (env-cmd): `pnpm typeorm <command>`
