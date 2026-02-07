@@ -46,3 +46,4 @@
 - Keep `src/generated/` untouched; regenerate instead of editing.
 - Validate all inputs on DTOs; rely on guards for authZ/authN, not controller logic.
 - Prefer pagination DTOs in `src/common/dto/`; avoid ad-hoc pagination shapes.
+- When defining DTO fields, use the shared decorators in `@/decorators/field.decorators` where possible.
