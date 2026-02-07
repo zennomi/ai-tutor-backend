@@ -17,7 +17,4 @@ export class PageOptionsDto {
     int: true,
   })
   readonly limit?: number = DEFAULT_PAGE_LIMIT;
-
-  @StringFieldOptional()
-  readonly q?: string;
 }

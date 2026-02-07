@@ -6,7 +6,6 @@ import {
 import {
   EnumFieldOptional,
   NumberFieldOptional,
-  StringFieldOptional,
 } from '@/decorators/field.decorators';
 
 export class PageOptionsDto {
@@ -23,9 +22,6 @@ export class PageOptionsDto {
     int: true,
   })
   readonly page?: number = DEFAULT_CURRENT_PAGE;
-
-  @StringFieldOptional()
-  readonly q?: string;
 
   @EnumFieldOptional(() => Order, { default: Order.ASC })
   readonly order?: Order = Order.ASC;

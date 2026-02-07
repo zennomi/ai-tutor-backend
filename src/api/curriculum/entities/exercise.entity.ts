@@ -4,6 +4,7 @@ import {
   Column,
   DeleteDateColumn,
   Entity,
+  Index,
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
@@ -36,6 +37,19 @@ export class ExerciseEntity extends AbstractEntity {
 
   @Column({ type: 'text' })
   question!: string;
+
+  // Stored in DB as pgvector; mapped as text to satisfy TypeORM validation
+  @Column({
+    type: 'vector',
+    length: 1536,
+    nullable: true,
+    name: 'question_embedding',
+  })
+  @Index('idx_exercise_question_embedding', {
+    where:
+      'USING ivfflat (question_embedding vector_l2_ops) WITH (lists = 100)',
+  })
+  questionEmbedding?: number[] | null;
 
   @Column({ type: 'text' })
   solution!: string;

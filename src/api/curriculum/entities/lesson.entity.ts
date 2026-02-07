@@ -11,8 +11,8 @@ import {
   PrimaryGeneratedColumn,
   Relation,
 } from 'typeorm';
-import { ExerciseEntity } from './exercise.entity';
 import { ExerciseTypeEntity } from './exercise-type.entity';
+import { ExerciseEntity } from './exercise.entity';
 import { UnitEntity } from './unit.entity';
 
 @Entity('lesson')

@@ -28,6 +28,7 @@
     "db:drop": "env-cmd ts-node ./node_modules/typeorm-extension/bin/cli.cjs db:drop",
     "seed:run": "env-cmd ts-node ./node_modules/typeorm-extension/bin/cli.cjs seed:run",
     "seed:create": "env-cmd ts-node ./node_modules/typeorm-extension/bin/cli.cjs seed:create",
+    "embeddings:backfill": "env-cmd ts-node src/scripts/backfill-exercise-embeddings.ts",
     "docs:dev": "vuepress dev docs",
     "docs:build": "vuepress build docs",
     "jwt:generate": "env-cmd ts-node src/scripts/helpers/generate-jwt.ts"
@@ -66,7 +67,7 @@
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
     "tslib": "^2.8.1",
-    "typeorm": "^0.3.20",
+    "typeorm": "^0.3.28",
     "typeorm-extension": "^3.6.3",
     "uuid": "^11.0.3"
   },

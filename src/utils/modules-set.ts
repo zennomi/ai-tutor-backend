@@ -3,6 +3,7 @@ import authConfig from '@/api/auth/config/auth.config';
 import { BackgroundModule } from '@/background/background.module';
 import appConfig from '@/config/app.config';
 import { AllConfigType } from '@/config/config.type';
+import embeddingConfig from '@/config/embedding.config';
 import databaseConfig from '@/database/config/database.config';
 import { TypeOrmConfigService } from '@/database/typeorm-config.service';
 import mailConfig from '@/mail/config/mail.config';
@@ -24,7 +25,14 @@ function generateModulesSet() {
   const imports: ModuleMetadata['imports'] = [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [appConfig, databaseConfig, redisConfig, authConfig, mailConfig],
+      load: [
+        appConfig,
+        databaseConfig,
+        redisConfig,
+        authConfig,
+        mailConfig,
+        embeddingConfig,
+      ],
       envFilePath: ['.env'],
     }),
   ];
