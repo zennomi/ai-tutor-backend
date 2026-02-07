@@ -1,4 +1,5 @@
-import * as path from 'path'; // 1. Import path
+import * as path from 'path';
+
 import 'reflect-metadata';
 import { DataSource, type DataSourceOptions } from 'typeorm';
 import { type SeederOptions } from 'typeorm-extension';
@@ -17,8 +18,8 @@ export const AppDataSource = new DataSource({
   dropSchema: false,
   keepConnectionAlive: true,
   logging: process.env.NODE_ENV !== 'production',
-  // 2. Use path.join(process.cwd(), ...) instead of __dirname
-  entities: [path.join(process.cwd(), 'src/**/*.entity{.ts,.js}')],
+  // Only AbstractEntity for migrations - User, Session, and Post are excluded
+  entities: [],
   migrations: [
     path.join(process.cwd(), 'src/database/migrations/**/*{.ts,.js}'),
   ],
