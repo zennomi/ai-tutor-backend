@@ -1,429 +1,53 @@
 ---
-description: Project overview and general development guidelines
+description: Project-specific overview and non-obvious rules
 globs: **/*
 ---
 
-This project is a NestJS backend application following clean code principles and TypeScript best practices.
+## Essentials
 
-## Project Overview
+- NestJS + TypeScript, modular monolith.
+- PostgreSQL with TypeORM; entities extend `AbstractEntity`.
+- Package manager: **pnpm** (avoid npm/yarn).
+- Path aliases: `@/api/*`, `@/common/*`, `@/config/*`, `@/database/*`, etc.
+- Status/type columns are **int** backed by numeric enums (e.g., `UserStatus = 1,2,3`).
 
-- **Framework**: NestJS with TypeScript
-- **Database**: PostgreSQL with TypeORM
-- **Package Manager**: PNPM
-- **Linting**: ESLint + Prettier
-- **Architecture**: Modular monolith
+## Commands
 
-## Project Structure
+- Install deps: `pnpm i`.
+- Type-check/build: `pnpm build` (run after adding packages).
+- Migrations: `pnpm migration:generate src/database/migrations/name-of-migration`; apply with `pnpm migration:up`; revert with `pnpm migration:down`.
+- Seeding: `pnpm seed:create`, `pnpm seed:run`.
+- After changing code (e.g., .ts files), run `pnpm build` (typecheck) and `pnpm lint`.
 
-Follow the established directory structure:
+## Architecture & structure
 
-- `src/api/` - API modules (controllers, services, DTOs, entities)
-- `src/background/` - Background jobs and queues
-- `src/common/` - Shared DTOs, interfaces, types
-- `src/config/` - Application configuration
-- `src/constants/` - Application constants
-- `src/database/` - Database config, entities, migrations, seeds
-- `src/decorators/` - Custom decorators
-- `src/exceptions/` - Custom exception classes
-- `src/filters/` - Exception filters
-- `src/guards/` - Authentication/authorization guards
-- `src/i18n/` - Internationalization files
-- `src/libs/` - Common modules (AWS, GCP, etc.)
-- `src/mail/` - Email templates and configuration
-- `src/shared/` - Shared module with global singleton services
-- `src/utils/` - Utility functions
+- Feature modules live under `src/api/*` (controllers, services, DTOs, entities).
+- Shared/global pieces: `src/common`, `src/shared`, `src/constants`, `src/utils`.
+- Generated code belongs in `src/generated/` — do not edit manually.
+- Keep business logic in services; controllers stay thin; DTOs handle validation/transform (class-validator/transformer).
 
-## Naming Conventions
+## Code style deviations to remember
 
-### Files
+- Import order: polyfills → node builtins → externals → internal alias → parent → sibling; alphabetize within groups; use `import type` for type-only imports.
+- Two-space indent, single quotes, semicolons (ESLint/Prettier enforced).
+- Prefer `type` for unions/intersections; `interface` for extends/implements.
+- Use path aliases instead of deep relative imports.
 
-- Use `camelCase` for file names: `user.service.ts`, `auth.controller.ts`
-- Use descriptive names that reflect the file's purpose
+## Repository etiquette
 
-### Variables and Functions
+- Work on feature branches; keep `main` clean.
+- Conventional Commits required (e.g., `feat(scope): subject`).
+- Avoid force pushes; keep commits scoped and reviewable.
 
-- Use `camelCase`: `getUser()`, `userService`, `isActive`
-- Use descriptive, pronounceable names
-- Avoid contractions: use `onItemClick` not `onItmClk`
-- Avoid context duplication: in `MenuItem` class, use `handleClick()` not `handleMenuItemClick()`
+## Environment & setup quirks
 
-### Classes, Interfaces, Types
+- Copy `.env` from `.env.example`; use `@nestjs/config` with typed configs.
+- Ensure Postgres is running before migrations/tests.
+- Run migrations after entity/schema changes; rerun seeds if data fixtures are needed.
 
-- Use `PascalCase`: `UserService`, `AuthController`, `UserDto`
-- **Do NOT** prefix interfaces with `I`: use `User` not `IUser`
-- Use `PascalCase` for enum names and members: `enum Status { Active, Inactive }`
+## Common gotchas
 
-### Constants
-
-- Use `UPPER_SNAKE_CASE`: `MAX_RETRY_COUNT`, `DEFAULT_TIMEOUT`
-
-### Function Naming Pattern
-
-Follow the A/HC/LC pattern: `prefix? + action (A) + high context (HC) + low context? (LC)`
-
-- `getUser()` - get action on User
-- `getUserMessages()` - get action on User with Messages context
-- `handleClickOutside()` - handle action on Click with Outside context
-- `shouldDisplayMessage()` - should prefix with Display action on Message
-
-### Common Action Verbs
-
-- `get` - Access data immediately
-- `set` - Set a variable declaratively
-- `reset` - Set back to initial value
-- `remove` - Remove from collection
-- `delete` - Completely erase
-- `compose` - Create new data from existing
-- `handle` - Handle an action/callback
-
-### Prefixes
-
-- `is` - Boolean characteristic/state: `isActive`, `isValid`
-- `has` - Boolean possession: `hasProducts`, `hasPermission`
-- `should` - Positive conditional: `shouldUpdate`, `shouldDisplay`
-- `min`/`max` - Boundaries: `minPrice`, `maxRetries`
-- `prev`/`next` - State transitions: `prevState`, `nextPage`
-
-## TypeScript Style Guide
-
-### Type vs Interface
-
-- Use `type` for unions/intersections: `type Config = EmailConfig | DbConfig`
-- Use `interface` for `extends`/`implements`: `interface Shape { }` then `class Circle implements Shape`
-- Otherwise, use what makes sense for the day
-
-### Arrays
-
-- Prefer `Foo[]` over `Array<Foo>`
-
-### Null vs Undefined
-
-- Prefer `undefined` for explicit unavailability
-- Use `null` where it's part of the API or conventional (e.g., Node.js callbacks)
-- Use truthy checks for objects: `if (error)` not `if (error === null)`
-- Use `== null` / `!= null` for primitives to check both null and undefined
-
-### Formatting
-
-- Use **2 spaces** for indentation (not tabs)
-- Use **single quotes** (`'`) unless escaping, then use backticks
-- Use **semicolons**
-- Space before type: `const foo: string = "hello"`
-
-### Type Safety
-
-- Always specify types for variables, parameters, and return values
-- Avoid `any` - use proper types or `unknown`
-- Use TypeScript's type system instead of runtime type checking
-
-## Code Quality Principles
-
-### Functions
-
-- **Do one thing**: Functions should have a single responsibility
-- **2 or fewer arguments ideally**: Use object destructuring for more parameters
-- **Use default arguments** instead of short-circuiting: `function loadPages(count: number = 10)`
-- **Avoid flags as parameters**: Split into separate functions instead
-- **Avoid side effects**: Prefer pure functions, return new data instead of mutating
-
-### Classes
-
-- **Small classes**: Follow Single Responsibility Principle
-- **High cohesion, low coupling**: Related members together, minimal dependencies
-- **Prefer composition over inheritance**: Use "has-a" over "is-a" when appropriate
-- **Private/protected members**: Use access modifiers appropriately
-- **Method chaining**: Return `this` for fluent interfaces when appropriate
-
-### SOLID Principles
-
-- **Single Responsibility**: One reason to change
-- **Open/Closed**: Open for extension, closed for modification
-- **Liskov Substitution**: Subtypes must be substitutable
-- **Interface Segregation**: Don't force clients to depend on unused methods
-- **Dependency Inversion**: Depend on abstractions, not concretions
-
-### Clean Code Practices
-
-- **Meaningful names**: Self-documenting code
-- **Small functions**: Do one thing well
-- **Avoid duplicate code**: DRY principle
-- **Remove dead code**: Don't leave commented code
-- **Use explanatory variables**: `const isSubscriptionActive = subscription.endDate > Date.now`
-- **Encapsulate conditionals**: Extract to named functions
-- **Avoid negative conditionals**: `if (!isEmailUsed)` not `if (isEmailNotUsed)`
-
-## NestJS Patterns
-
-### Modules
-
-- Each feature should have its own module
-- Use `@Module()` decorator with proper imports, controllers, providers, exports
-
-### Controllers
-
-- Use `@Controller()` decorator with route prefix
-- Use HTTP method decorators: `@Get()`, `@Post()`, `@Put()`, `@Delete()`, `@Patch()`
-- Use `@Public()` decorator for public routes
-- Use `@CurrentUser() user: JwtPayloadType` decorator to get authenticated user
-- Use Swagger decorators for API documentation
-
-### Services
-
-- Use `@Injectable()` decorator
-- Inject dependencies via constructor
-- Keep business logic in services, not controllers
-
-### DTOs (Data Transfer Objects)
-
-- Create separate DTOs for requests and responses
-- Use `class-validator` decorators for validation
-- Use `class-transformer` decorators for transformation
-- Naming: `CreateUserDto`, `UpdateUserDto`, `UserResponseDto`
-- Place DTOs in `dto/` folder within the feature module
-
-### Entities
-
-- Use TypeORM decorators: `@Entity()`, `@Column()`, `@PrimaryGeneratedColumn()`
-- Extend `AbstractEntity` for common fields (id, createdAt, updatedAt)
-- Place entities in `entities/` folder within the feature module
-
-### Guards
-
-- Use `@Injectable()` and implement `CanActivate`
-- Use for authentication/authorization
-- Place in `src/guards/`
-
-### Filters
-
-- Use `@Catch()` decorator for exception filters
-- Implement `ExceptionFilter` interface
-- Place in `src/filters/`
-
-### Decorators
-
-- Create custom decorators when needed
-- Place in `src/decorators/`
-- Use for cross-cutting concerns
-
-## Database Patterns (TypeORM)
-
-### Entities
-
-- Extend `AbstractEntity` for common fields
-- Use proper column types and decorators
-- Use relations: `@OneToMany()`, `@ManyToOne()`, `@ManyToMany()`, `@OneToOne()`
-- Use `int` type for status/type columns, backed by numeric enums defined in `src/constants/` (e.g. `UserStatus` uses `1`, `2`, `3`...).
-
-### Migrations
-
-- Generate migrations: `pnpm migration:generate src/database/migrations/name-of-migration`
-- Run migrations: `pnpm migration:up`
-- Revert migrations: `pnpm migration:down`
-- Place in `src/database/migrations/`
-
-### Seeds
-
-- Use TypeORM Extension for seeding
-- Create seeders: `pnpm seed:create`
-- Run seeds: `pnpm seed:run`
-- Place in `src/database/seeds/`
-
-### Repositories
-
-- Use TypeORM repositories
-- Create custom repositories when needed
-- Place in `src/database/repositories/` or feature-specific location
-
-## Import Organization
-
-Organize imports in this order (with blank lines between groups):
-
-1. **Polyfills**: `import 'reflect-metadata';`
-2. **Node builtin modules**: `import fs from 'fs';`
-3. **External modules**: `import { query } from 'itiriri';`
-4. **Internal modules** (using path aliases): `import { UserService } from '@/api/user/user.service';`
-5. **Parent directory**: `import foo from '../foo';`
-6. **Same/sibling directory**: `import bar from './bar';`
-
-Within each group:
-
-- Alphabetize imports
-- Use `import type` for type-only imports
-- Alphabetize named imports: `import { A, B, C } from 'foo';`
-
-### Path Aliases
-
-Use TypeScript path aliases defined in `tsconfig.json`:
-
-- `@/api/*` → `src/api/*`
-- `@/common/*` → `src/common/*`
-- `@/config/*` → `src/config/*`
-- `@/database/*` → `src/database/*`
-- etc.
-
-## Error Handling
-
-### Exceptions
-
-- Always throw `Error` instances, not strings
-- Create custom exception classes extending NestJS exceptions
-- Place custom exceptions in `src/exceptions/`
-- Use appropriate HTTP status codes
-
-### Error Responses
-
-- Use consistent error response format
-- Include error codes and messages
-
-### Try-Catch
-
-- Don't ignore caught errors
-- Log errors appropriately
-- Handle errors at appropriate levels
-
-## Async/Await
-
-- **Prefer async/await** over Promise chains
-- Use `async` functions for asynchronous operations
-- Always handle errors with try-catch
-- Don't ignore rejected promises
-
-## Comments
-
-- **Prefer self-explanatory code** over comments
-- Don't leave commented-out code
-- Don't have journal comments (use git history)
-- Avoid positional markers
-- Use `// TODO:` for future improvements
-
-## Commit Conventions
-
-Follow [Conventional Commits](https://www.conventionalcommits.org/):
-
-Format: `<type>(<scope>?): <subject>`
-
-Types:
-
-- `feat`: New feature
-- `fix`: Bug fix
-- `docs`: Documentation changes
-- `style`: Code style changes (formatting, etc.)
-- `refactor`: Code refactoring
-- `perf`: Performance improvements
-- `test`: Test additions/changes
-- `build`: Build system changes
-- `ci`: CI configuration changes
-- `chore`: Other changes
-
-Examples:
-
-- `feat: #1001 add user authentication`
-- `fix: resolve pagination issue`
-- `refactor: improve type safety`
-- `docs: update API documentation`
-
-## Environment Variables
-
-- Use `.env` file for local development
-- Copy from `.env.example`
-- Use `@nestjs/config` for configuration
-- Create typed config classes in `src/config/`
-
-## API Documentation
-
-- Use Swagger/OpenAPI decorators
-- Document all endpoints, DTOs, and responses
-- Use `@ApiTags()`, `@ApiOperation()`, `@ApiResponse()` decorators
-
-## Pagination
-
-- Support both offset and cursor pagination
-- Use DTOs from `src/common/dto/`
-- Follow established pagination patterns
-
-## Security
-
-- Use JWT for authentication
-- Hash passwords with argon2
-- Use guards for route protection
-- Validate all inputs with class-validator
-- Use Helmet for security headers
-- Implement CORS properly
-
-## Performance
-
-- Use caching where appropriate (Redis)
-- Optimize database queries
-- Use pagination for large datasets
-- Avoid N+1 query problems
-- Use background jobs for heavy operations
-
-## Code Generation
-
-- Generated files go in `src/generated/`
-- Don't manually edit generated files
-- Regenerate when needed
-
-## When Writing Code
-
-1. **Follow the existing patterns** in the codebase
-2. **Update documentation** if needed
-3. **Use TypeScript** types properly
-4. **Keep functions small** and focused
-5. **Use meaningful names** for everything
-6. **Handle errors** appropriately
-7. **Follow SOLID principles**
-8. **Keep code DRY** (Don't Repeat Yourself)
-9. **Write self-documenting code** with minimal comments
-10. After the code is changed, run `pnpm i` if you added a package, then run `pnpm build` to type check.
-
-## Common Patterns
-
-### Service Pattern
-
-```typescript
-@Injectable()
-export class UserService {
-  constructor(
-    @InjectRepository(User)
-    private readonly userRepository: Repository<User>,
-  ) {}
-
-  async findOne(id: string): Promise<User> {
-    return this.userRepository.findOne({ where: { id } });
-  }
-}
-```
-
-### Controller Pattern
-
-```typescript
-@Controller('users')
-@ApiTags('users')
-export class UserController {
-  constructor(private readonly userService: UserService) {}
-
-  @Get(':id')
-  @ApiOperation({ summary: 'Get user by ID' })
-  async findOne(@Param('id') id: string): Promise<UserResponseDto> {
-    return this.userService.findOne(id);
-  }
-}
-```
-
-### DTO Pattern
-
-```typescript
-export class CreateUserDto {
-  @IsEmail()
-  @ApiProperty()
-  email: string;
-
-  @IsString()
-  @MinLength(8)
-  @ApiProperty()
-  password: string;
-}
-```
-
-Remember: When in doubt, look at existing code in the project for reference!
+- Use numeric enums for DB statuses (do not switch to strings).
+- Keep `src/generated/` untouched; regenerate instead of editing.
+- Validate all inputs on DTOs; rely on guards for authZ/authN, not controller logic.
+- Prefer pagination DTOs in `src/common/dto/`; avoid ad-hoc pagination shapes.

@@ -4,7 +4,7 @@
     "postToolUse": [
       {
         "matcher": "Write|Edit",
-        "command": ".rulesync/hooks/format.sh"
+        "command": "pnpm lint"
       }
     ]
   }
