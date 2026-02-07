@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { AuthModule } from './auth/auth.module';
 import { CurriculumModule } from './curriculum/curriculum.module';
+import { DocxExportModule } from './docx-export/docx-export.module';
 import { FileUploadModule } from './file-upload/file-upload.module';
 import { HealthModule } from './health/health.module';
 import { HomeModule } from './home/home.module';
@@ -16,6 +17,7 @@ import { UserModule } from './user/user.module';
     PostModule,
     CurriculumModule,
     FileUploadModule,
+    DocxExportModule,
   ],
 })
 export class ApiModule {}
