@@ -3,7 +3,7 @@ import { SearchExercisesResDto } from '@/api/curriculum/dto/search-exercises.res
 import { ExerciseEntity } from '@/api/curriculum/entities/exercise.entity';
 import { OffsetPaginationDto } from '@/common/dto/offset-pagination/offset-pagination.dto';
 import { OffsetPaginatedDto } from '@/common/dto/offset-pagination/paginated.dto';
-import { EmbeddingService } from '@/common/services/embedding.service';
+import { EmbeddingService } from '@/libs/embedding/embedding.service';
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { plainToInstance } from 'class-transformer';

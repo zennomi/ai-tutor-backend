@@ -1,5 +1,4 @@
-import { EmbeddingService } from '@/common/services/embedding.service';
-import { HttpModule } from '@nestjs/axios';
+import { EmbeddingModule } from '@/libs/embedding/embedding.module';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CurriculumEmbeddingController } from './controllers/curriculum-embedding.controller';
@@ -20,7 +19,7 @@ import { CurriculumMergeService } from './services/curriculum-merge.service';
 
 @Module({
   imports: [
-    HttpModule,
+    EmbeddingModule,
     TypeOrmModule.forFeature([
       GradeEntity,
       TextbookEntity,
@@ -38,7 +37,6 @@ import { CurriculumMergeService } from './services/curriculum-merge.service';
     CurriculumMergeController,
   ],
   providers: [
-    EmbeddingService,
     CurriculumExerciseService,
     CurriculumExerciseImportService,
     CurriculumExerciseEmbeddingBackfillService,

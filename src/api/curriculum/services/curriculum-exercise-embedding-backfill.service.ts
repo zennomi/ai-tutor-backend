@@ -1,4 +1,4 @@
-import { EmbeddingService } from '@/common/services/embedding.service';
+import { EmbeddingService } from '@/libs/embedding/embedding.service';
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
@@ -102,7 +102,9 @@ export class CurriculumExerciseEmbeddingBackfillService {
             .update(ExerciseEntity)
             .set({ questionEmbedding: () => ':embedding::vector' })
             .where('id = :id', { id: row.id })
-            .setParameters({ embedding: JSON.stringify(embeddingResult.embedding) })
+            .setParameters({
+              embedding: JSON.stringify(embeddingResult.embedding),
+            })
             .execute();
         }
 
