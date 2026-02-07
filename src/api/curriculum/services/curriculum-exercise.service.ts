@@ -63,9 +63,7 @@ export class CurriculumExerciseService {
     const data = plainToInstance(
       SearchExercisesResDto,
       entities.map((e, index) => {
-        const distance = raw[index]?.distance
-          ? Number(raw[index].distance)
-          : undefined;
+        const distance = raw[index]?.distance;
         return {
           ...e,
           lesson: e.lesson?.name,
