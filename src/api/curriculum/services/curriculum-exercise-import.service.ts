@@ -14,6 +14,11 @@ import { UnitEntity } from '../entities/unit.entity';
 export interface ImportResult {
   inserted: number;
   duplicateExercise: BulkExerciseImportItemDto[];
+  newGrades: string[];
+  newUnits: string[];
+  newLessons: string[];
+  newFormats: string[];
+  newTypes: string[];
 }
 
 @Injectable()
@@ -29,9 +34,22 @@ export class CurriculumExerciseImportService {
   ): Promise<ImportResult> {
     const duplicates: BulkExerciseImportItemDto[] = [];
     let inserted = 0;
+    const newGrades = new Set<string>();
+    const newUnits = new Set<string>();
+    const newLessons = new Set<string>();
+    const newFormats = new Set<string>();
+    const newTypes = new Set<string>();
 
     if (!items.length) {
-      return { inserted, duplicateExercise: duplicates };
+      return {
+        inserted,
+        duplicateExercise: duplicates,
+        newGrades: [],
+        newUnits: [],
+        newLessons: [],
+        newFormats: [],
+        newTypes: [],
+      };
     }
 
     await this.dataSource.transaction(async (manager) => {
@@ -71,6 +89,7 @@ export class CurriculumExerciseImportService {
           grade = await gradeRepo.save(
             new GradeEntity({ name, createdBy: userId, updatedBy: userId }),
           );
+          newGrades.add(name);
         }
 
         gradeCache.set(key, grade);
@@ -137,6 +156,7 @@ export class CurriculumExerciseImportService {
               updatedBy: userId,
             }),
           );
+          newUnits.add(name);
         }
 
         unitCache.set(key, unit);
@@ -166,6 +186,7 @@ export class CurriculumExerciseImportService {
               updatedBy: userId,
             }),
           );
+          newLessons.add(name);
         }
 
         lessonCache.set(key, lesson);
@@ -187,6 +208,7 @@ export class CurriculumExerciseImportService {
           format = await formatRepo.save(
             new FormatEntity({ name, createdBy: userId, updatedBy: userId }),
           );
+          newFormats.add(name);
         }
 
         formatCache.set(key, format);
@@ -224,6 +246,7 @@ export class CurriculumExerciseImportService {
               updatedBy: userId,
             }),
           );
+          newTypes.add(name);
         }
 
         typeCache.set(key, exerciseType);
@@ -270,6 +293,14 @@ export class CurriculumExerciseImportService {
       }
     });
 
-    return { inserted, duplicateExercise: duplicates };
+    return {
+      inserted,
+      duplicateExercise: duplicates,
+      newGrades: Array.from(newGrades),
+      newUnits: Array.from(newUnits),
+      newLessons: Array.from(newLessons),
+      newFormats: Array.from(newFormats),
+      newTypes: Array.from(newTypes),
+    };
   }
 }
