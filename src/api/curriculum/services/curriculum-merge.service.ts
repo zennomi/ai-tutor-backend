@@ -2,6 +2,7 @@ import {
   CurriculumMergeDto,
   CurriculumMergeTable,
 } from '@/api/curriculum/dto/merge-curriculum.dto';
+import { ExerciseTypeEntity } from '@/api/curriculum/entities/exercise-type.entity';
 import { ExerciseEntity } from '@/api/curriculum/entities/exercise.entity';
 import { FormatEntity } from '@/api/curriculum/entities/format.entity';
 import { GradeEntity } from '@/api/curriculum/entities/grade.entity';
@@ -25,6 +26,7 @@ export interface CurriculumMergeResult {
     textbooks?: number;
     lessons?: number;
     exercises?: number;
+    exerciseTypes?: number;
   };
   deleted: boolean;
 }
@@ -57,6 +59,7 @@ export class CurriculumMergeService {
       const lessonRepo = manager.getRepository(LessonEntity);
       const formatRepo = manager.getRepository(FormatEntity);
       const exerciseRepo = manager.getRepository(ExerciseEntity);
+      const exerciseTypeRepo = manager.getRepository(ExerciseTypeEntity);
 
       const ensureActive = async <
         T extends { id: Uuid; deletedAt: Date | null },
@@ -117,6 +120,13 @@ export class CurriculumMergeService {
             { lessonId: destinationId as Uuid, updatedBy: userId },
           );
           updatedCounts.exercises = result.affected ?? 0;
+
+          const resultTypes = await exerciseTypeRepo.update(
+            { lessonId: sourceId as Uuid, deletedAt: IsNull() },
+            { lessonId: destinationId as Uuid, updatedBy: userId },
+          );
+          updatedCounts.exerciseTypes = resultTypes.affected ?? 0;
+
           await lessonRepo.update(
             { id: sourceId as Uuid },
             { updatedBy: userId },
@@ -137,6 +147,21 @@ export class CurriculumMergeService {
             { updatedBy: userId },
           );
           await formatRepo.softDelete({ id: sourceId as Uuid });
+          break;
+        }
+        case CurriculumMergeTable.ExerciseType: {
+          await ensureActive(exerciseTypeRepo, sourceId, 'ExerciseType');
+          await ensureActive(exerciseTypeRepo, destinationId, 'ExerciseType');
+          const result = await exerciseRepo.update(
+            { typeId: sourceId as Uuid, deletedAt: IsNull() },
+            { typeId: destinationId as Uuid, updatedBy: userId },
+          );
+          updatedCounts.exercises = result.affected ?? 0;
+          await exerciseTypeRepo.update(
+            { id: sourceId as Uuid },
+            { updatedBy: userId },
+          );
+          await exerciseTypeRepo.softDelete({ id: sourceId as Uuid });
           break;
         }
         default: {

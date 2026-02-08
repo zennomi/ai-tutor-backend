@@ -14,6 +14,7 @@ export enum CurriculumMergeTable {
   Unit = 'unit',
   Lesson = 'lesson',
   Format = 'format',
+  ExerciseType = 'exercise_type',
 }
 
 @ValidatorConstraint({ name: 'SourceDestinationDifferent', async: false })
