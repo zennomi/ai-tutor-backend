@@ -1,12 +1,12 @@
 import { FileStorageService } from '@/libs/file-storage/file-storage.service';
 import { Injectable } from '@nestjs/common';
 import {
+  AlignmentType,
   BorderStyle,
-  Document,
   FileChild,
-  HeadingLevel,
-  Packer,
   Paragraph,
+  patchDocument,
+  PatchType,
   Table,
   TableCell,
   TableRow,
@@ -14,6 +14,7 @@ import {
   VerticalAlign,
   WidthType,
 } from 'docx';
+import * as fs from 'fs';
 import { MarkdownDocx } from 'markdown-docx';
 import * as path from 'path';
 import { GenerateDocxDto } from './dto/generate-docx.dto';
@@ -32,39 +33,30 @@ export class DocxExportService {
   async generateDocx({ title, exercises }: GenerateDocxDto) {
     const paragraphs: FileChild[] = [];
 
-    if (title) {
-      paragraphs.push(
-        new Paragraph({
-          text: title,
-          heading: HeadingLevel.HEADING_1,
+    const titleParagraph = new Paragraph({
+      children: [
+        new TextRun({
+          text: title || 'Bài kiểm tra',
+          font: 'Cambria Math',
+          bold: true,
         }),
-      );
-    }
+      ],
+      alignment: AlignmentType.CENTER,
+    });
 
     for (const [index, exercise] of exercises.entries()) {
       const questionComponents = await this.renderMarkdown(exercise.question);
 
-      const firstComponent = questionComponents.shift();
-      if (firstComponent instanceof Paragraph) {
-        paragraphs.push(
-          new Paragraph({
-            children: [
-              new TextRun({ text: `Câu ${index + 1}: `, bold: true }),
-              firstComponent,
-            ],
+      if (questionComponents[0] instanceof Paragraph) {
+        questionComponents[0].addRunToFront(
+          new TextRun({
+            text: `Câu ${index + 1}: `,
+            bold: true,
+            font: 'Cambria Math',
           }),
         );
-        paragraphs.push(...questionComponents);
-      } else {
-        paragraphs.push(
-          new Paragraph({
-            children: [new TextRun({ text: `Câu ${index + 1}: `, bold: true })],
-          }),
-        );
-        paragraphs.push(firstComponent);
-        paragraphs.push(...questionComponents);
       }
-
+      paragraphs.push(...questionComponents);
       if (exercise.choices?.length) {
         const rows: TableRow[] = [];
         for (let i = 0; i < exercise.choices.length; i += 2) {
@@ -112,8 +104,12 @@ export class DocxExportService {
         paragraphs.push(
           new Paragraph({
             children: [
-              new TextRun({ text: 'Đáp án: ', bold: true }),
-              new TextRun(exercise.key),
+              new TextRun({
+                text: 'Đáp án: ',
+                bold: true,
+                font: 'Cambria Math',
+              }),
+              new TextRun({ text: exercise.key, font: 'Cambria Math' }),
             ],
           }),
         );
@@ -124,7 +120,11 @@ export class DocxExportService {
         paragraphs.push(
           new Paragraph({
             children: [
-              new TextRun({ text: 'Lời giải chi tiết: ', bold: true }),
+              new TextRun({
+                text: 'Lời giải chi tiết: ',
+                bold: true,
+                font: 'Cambria Math',
+              }),
             ],
           }),
         );
@@ -134,15 +134,28 @@ export class DocxExportService {
       paragraphs.push(new Paragraph({}));
     }
 
-    const doc = new Document({
-      sections: [
-        {
+    const templatePath = path.join(
+      process.cwd(),
+      'src/utils/docx/test_template.docx',
+    );
+    const template = fs.readFileSync(templatePath);
+
+    const doc = await patchDocument({
+      outputType: 'nodebuffer',
+      data: template,
+      patches: {
+        main_patch: {
+          type: PatchType.DOCUMENT,
           children: paragraphs,
         },
-      ],
+        title_patch: {
+          type: PatchType.DOCUMENT,
+          children: [titleParagraph],
+        },
+      },
     });
 
-    const buffer = await Packer.toBuffer(doc);
+    const buffer = Buffer.from(doc);
     const filename = this.buildFileName(title, exercises.length);
     const url = await this.fileStorageService.saveFile(
       buffer,
@@ -163,9 +176,7 @@ export class DocxExportService {
       return [];
     }
 
-    const converter = new MarkdownDocx(markdown, {
-      ignoreImage: true,
-    });
+    const converter = new MarkdownDocx(markdown, {});
 
     return converter.toSection();
   }
@@ -176,32 +187,18 @@ export class DocxExportService {
   ): Promise<TableCell> {
     const label = String.fromCharCode(65 + index);
     const components = await this.renderMarkdown(content);
-    const firstComponent = components.shift();
-    const children: FileChild[] = [];
-    if (firstComponent instanceof Paragraph) {
-      children.push(
-        new Paragraph({
-          children: [
-            new TextRun({ text: `${label}. `, bold: true }),
-            firstComponent,
-          ],
-          spacing: { after: 0 },
+    if (components[0] instanceof Paragraph) {
+      components[0].addRunToFront(
+        new TextRun({
+          text: `${label}. `,
+          bold: true,
+          font: 'Cambria Math',
         }),
-        ...components,
-      );
-    } else {
-      children.push(
-        new Paragraph({
-          children: [new TextRun({ text: `${label}. `, bold: true })],
-          spacing: { after: 0 },
-        }),
-        firstComponent,
-        ...components,
       );
     }
 
     return new TableCell({
-      children,
+      children: components,
       width: {
         size: 50,
         type: WidthType.PERCENTAGE,
