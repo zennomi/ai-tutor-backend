@@ -44,7 +44,11 @@ export class DocxExportService {
       alignment: AlignmentType.CENTER,
     });
 
+    const questionParagraphs: FileChild[] = [];
+    const solutionParagraphs: FileChild[] = [];
+
     for (const [index, exercise] of exercises.entries()) {
+      // --- Questions Section ---
       const questionComponents = await this.renderMarkdown(exercise.question);
 
       if (questionComponents[0] instanceof Paragraph) {
@@ -56,7 +60,7 @@ export class DocxExportService {
           }),
         );
       }
-      paragraphs.push(...questionComponents);
+      questionParagraphs.push(...questionComponents);
       if (exercise.choices?.length) {
         const rows: TableRow[] = [];
         for (let i = 0; i < exercise.choices.length; i += 2) {
@@ -76,7 +80,7 @@ export class DocxExportService {
           rows.push(new TableRow({ children: cells }));
         }
 
-        paragraphs.push(
+        questionParagraphs.push(
           new Table({
             rows: rows,
             width: {
@@ -100,38 +104,76 @@ export class DocxExportService {
         );
       }
 
-      if (exercise.key) {
-        paragraphs.push(
+      // --- Solutions Section ---
+      if (exercise.key || exercise.solution) {
+        solutionParagraphs.push(
           new Paragraph({
             children: [
               new TextRun({
-                text: 'Đáp án: ',
-                bold: true,
-                font: 'Cambria Math',
-              }),
-              new TextRun({ text: exercise.key, font: 'Cambria Math' }),
-            ],
-          }),
-        );
-      }
-
-      if (exercise.solution) {
-        const solutionComponents = await this.renderMarkdown(exercise.solution);
-        paragraphs.push(
-          new Paragraph({
-            children: [
-              new TextRun({
-                text: 'Lời giải chi tiết: ',
+                text: `Câu ${index + 1}: `,
                 bold: true,
                 font: 'Cambria Math',
               }),
             ],
           }),
         );
-        paragraphs.push(...solutionComponents);
-      }
 
+        if (exercise.key) {
+          solutionParagraphs.push(
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: 'Đáp án: ',
+                  bold: true,
+                  font: 'Cambria Math',
+                }),
+                new TextRun({ text: exercise.key, font: 'Cambria Math' }),
+              ],
+            }),
+          );
+        }
+
+        if (exercise.solution) {
+          const solutionComponents = await this.renderMarkdown(
+            exercise.solution,
+          );
+          solutionParagraphs.push(
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: 'Lời giải chi tiết: ',
+                  bold: true,
+                  font: 'Cambria Math',
+                }),
+              ],
+            }),
+          );
+          solutionParagraphs.push(...solutionComponents);
+        }
+
+        solutionParagraphs.push(new Paragraph({}));
+      }
+    }
+
+    paragraphs.push(...questionParagraphs);
+
+    if (solutionParagraphs.length > 0) {
+      paragraphs.push(
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: 'ĐÁP ÁN VÀ LỜI GIẢI CHI TIẾT',
+              bold: true,
+              font: 'Cambria Math',
+              size: 28, // 14pt
+            }),
+          ],
+          alignment: AlignmentType.CENTER,
+          pageBreakBefore: true,
+        }),
+      );
       paragraphs.push(new Paragraph({}));
+      paragraphs.push(...solutionParagraphs);
     }
 
     const templatePath = path.join(
