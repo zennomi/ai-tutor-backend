@@ -49,7 +49,10 @@ export class DocxExportService {
 
     for (const [index, exercise] of exercises.entries()) {
       // --- Questions Section ---
-      const questionComponents = await this.renderMarkdown(exercise.question);
+      const sanitizedQuestion = this.sanitizeEquationDelimiters(
+        exercise.question,
+      );
+      const questionComponents = await this.renderMarkdown(sanitizedQuestion);
 
       if (questionComponents[0] instanceof Paragraph) {
         questionComponents[0].addRunToFront(
@@ -119,6 +122,7 @@ export class DocxExportService {
         );
 
         if (exercise.key) {
+          const sanitizedKey = this.sanitizeEquationDelimiters(exercise.key);
           solutionParagraphs.push(
             new Paragraph({
               children: [
@@ -127,16 +131,18 @@ export class DocxExportService {
                   bold: true,
                   font: 'Cambria Math',
                 }),
-                new TextRun({ text: exercise.key, font: 'Cambria Math' }),
+                new TextRun({ text: sanitizedKey, font: 'Cambria Math' }),
               ],
             }),
           );
         }
 
         if (exercise.solution) {
-          const solutionComponents = await this.renderMarkdown(
+          const sanitizedSolution = this.sanitizeEquationDelimiters(
             exercise.solution,
           );
+          const solutionComponents =
+            await this.renderMarkdown(sanitizedSolution);
           solutionParagraphs.push(
             new Paragraph({
               children: [
@@ -223,12 +229,21 @@ export class DocxExportService {
     return converter.toSection();
   }
 
+  private sanitizeEquationDelimiters(content?: string): string | undefined {
+    if (!content) {
+      return content;
+    }
+
+    return content.replace(/\(\$/g, '( $').replace(/\$\)/g, '$ )');
+  }
+
   private async createChoiceCell(
     content: string,
     index: number,
   ): Promise<TableCell> {
     const label = String.fromCharCode(65 + index);
-    const components = await this.renderMarkdown(content);
+    const sanitizedContent = this.sanitizeEquationDelimiters(content);
+    const components = await this.renderMarkdown(sanitizedContent);
     if (components[0] instanceof Paragraph) {
       components[0].addRunToFront(
         new TextRun({
