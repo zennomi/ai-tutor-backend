@@ -20,7 +20,7 @@ import * as path from 'path';
 import { GenerateDocxDto } from './dto/generate-docx.dto';
 
 @Injectable()
-export class DocxExportService {
+export class DocumentService {
   private readonly borderNone = {
     top: { style: BorderStyle.NONE, size: 0, color: 'auto' },
     bottom: { style: BorderStyle.NONE, size: 0, color: 'auto' },
