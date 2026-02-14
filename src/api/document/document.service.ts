@@ -1,5 +1,17 @@
-import { FileStorageService } from '@/libs/file-storage/file-storage.service';
-import { Injectable } from '@nestjs/common';
+import { spawn } from 'child_process';
+import * as fs from 'fs';
+import { promises as fsPromises } from 'fs';
+import * as os from 'os';
+import * as path from 'path';
+
+import {
+  BadRequestException,
+  Injectable,
+  InternalServerErrorException,
+  RequestTimeoutException,
+  UnprocessableEntityException,
+} from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import {
   AlignmentType,
   BorderStyle,
@@ -14,9 +26,13 @@ import {
   VerticalAlign,
   WidthType,
 } from 'docx';
-import * as fs from 'fs';
+import type { Express } from 'express';
 import { MarkdownDocx } from 'markdown-docx';
-import * as path from 'path';
+
+import type { AllConfigType } from '@/config/config.type';
+import { FileStorageService } from '@/libs/file-storage/file-storage.service';
+
+import { ConvertDocxToMarkdownDto } from './dto/convert-docx-to-markdown.dto';
 import { GenerateDocxDto } from './dto/generate-docx.dto';
 
 @Injectable()
@@ -28,7 +44,12 @@ export class DocumentService {
     right: { style: BorderStyle.NONE, size: 0, color: 'auto' },
   };
 
-  constructor(private readonly fileStorageService: FileStorageService) {}
+  private readonly markitdownTimeoutMs = 15_000;
+
+  constructor(
+    private readonly configService: ConfigService<AllConfigType>,
+    private readonly fileStorageService: FileStorageService,
+  ) {}
 
   async generateDocx({ title, exercises }: GenerateDocxDto) {
     const paragraphs: FileChild[] = [];
@@ -217,6 +238,144 @@ export class DocumentService {
       filename,
       path: relativePath,
     };
+  }
+
+  async convertDocxToMarkdown(
+    file: Express.Multer.File,
+    dto: ConvertDocxToMarkdownDto,
+  ) {
+    if (!file?.buffer?.length) {
+      throw new BadRequestException('Uploaded DOCX file is empty.');
+    }
+
+    const normalizeLineEndings = dto.normalizeLineEndings ?? true;
+    const stripTrailingWhitespace = dto.stripTrailingWhitespace ?? true;
+
+    const tempDir = await fsPromises.mkdtemp(
+      path.join(os.tmpdir(), 'docx-md-'),
+    );
+    const tempInputPath = path.join(tempDir, 'input.docx');
+
+    try {
+      await fsPromises.writeFile(tempInputPath, file.buffer);
+
+      const markdown = await this.runMarkitdown(tempInputPath);
+      const normalizedMarkdown = this.normalizeMarkdown(markdown, {
+        normalizeLineEndings,
+        stripTrailingWhitespace,
+      });
+
+      return {
+        filename: file.originalname,
+        markdown: normalizedMarkdown,
+      };
+    } finally {
+      await fsPromises.rm(tempDir, { force: true, recursive: true });
+    }
+  }
+
+  private async runMarkitdown(inputPath: string): Promise<string> {
+    const markitdownPythonPath = this.configService.getOrThrow(
+      'app.markitdownPythonBin',
+      {
+        infer: true,
+      },
+    );
+
+    return new Promise((resolve, reject) => {
+      const processRunner = spawn(
+        markitdownPythonPath,
+        ['-m', 'markitdown', inputPath],
+        {
+          cwd: path.dirname(inputPath),
+          env: { ...process.env },
+          shell: false,
+        },
+      );
+
+      let stdout = '';
+      let stderr = '';
+      let didTimeout = false;
+
+      const timer = setTimeout(() => {
+        didTimeout = true;
+        processRunner.kill('SIGKILL');
+      }, this.markitdownTimeoutMs);
+
+      processRunner.stdout.on('data', (data: Buffer) => {
+        stdout += data.toString('utf8');
+      });
+
+      processRunner.stderr.on('data', (data: Buffer) => {
+        stderr += data.toString('utf8');
+      });
+
+      processRunner.on('error', (error: NodeJS.ErrnoException) => {
+        clearTimeout(timer);
+
+        if (error.code === 'ENOENT') {
+          reject(
+            new InternalServerErrorException(
+              `MarkItDown Python executable not found at ${markitdownPythonPath}.`,
+            ),
+          );
+          return;
+        }
+
+        reject(
+          new InternalServerErrorException(
+            `Failed to start MarkItDown process: ${error.message}`,
+          ),
+        );
+      });
+
+      processRunner.on('close', (code) => {
+        clearTimeout(timer);
+
+        if (didTimeout) {
+          reject(
+            new RequestTimeoutException(
+              'DOCX to Markdown conversion timed out.',
+            ),
+          );
+          return;
+        }
+
+        if (code !== 0) {
+          reject(
+            new UnprocessableEntityException(
+              stderr.trim() || `MarkItDown exited with code ${code}.`,
+            ),
+          );
+          return;
+        }
+
+        resolve(stdout);
+      });
+    });
+  }
+
+  private normalizeMarkdown(
+    markdown: string,
+    options: {
+      normalizeLineEndings: boolean;
+      stripTrailingWhitespace: boolean;
+    },
+  ): string {
+    let output = markdown;
+
+    if (options.normalizeLineEndings) {
+      output = output.replace(/\r\n/g, '\n');
+    }
+
+    if (options.stripTrailingWhitespace) {
+      output = output
+        .split('\n')
+        .map((line) => line.replace(/[ \t]+$/g, ''))
+        .join('\n');
+    }
+
+    return output;
   }
 
   private async renderMarkdown(markdown?: string): Promise<FileChild[]> {

@@ -4,6 +4,7 @@ import {
   IsBoolean,
   IsEnum,
   IsInt,
+  IsNotEmpty,
   IsOptional,
   IsString,
   IsUrl,
@@ -63,6 +64,10 @@ class EnvironmentVariablesValidator {
   )
   @IsOptional()
   APP_CORS_ORIGIN: string;
+
+  @IsString()
+  @IsNotEmpty()
+  MARKITDOWN_PYTHON_BIN: string;
 }
 
 export default registerAs<AppConfig>('app', () => {
@@ -85,6 +90,7 @@ export default registerAs<AppConfig>('app', () => {
     logLevel: process.env.APP_LOG_LEVEL || 'warn',
     logService: process.env.APP_LOG_SERVICE || LogService.CONSOLE,
     corsOrigin: getCorsOrigin(),
+    markitdownPythonBin: process.env.MARKITDOWN_PYTHON_BIN as string,
   };
 });
 
