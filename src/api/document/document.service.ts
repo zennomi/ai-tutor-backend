@@ -92,6 +92,7 @@ export class DocumentService {
         question,
         index,
         labels,
+        index === preparedQuestions.length - 1,
       );
       solutionParagraphs.push(...questionSolutions);
     }
@@ -111,9 +112,11 @@ export class DocumentService {
           ],
           alignment: AlignmentType.CENTER,
           pageBreakBefore: true,
+          spacing: {
+            after: 180,
+          },
         }),
       );
-      paragraphs.push(new Paragraph({}));
       paragraphs.push(...solutionParagraphs);
     }
 
@@ -329,12 +332,16 @@ export class DocumentService {
     question: GeneratedQuestionDto,
     index: number,
     labels: LocaleDictionary,
+    isLastQuestion: boolean,
   ): Promise<FileChild[]> {
     const paragraphs: FileChild[] = [
       new Paragraph({
         children: [
           this.createBoldRun(`${labels.questionPrefix} ${index + 1}: `),
         ],
+        spacing: {
+          after: 120,
+        },
       }),
     ];
 
@@ -346,26 +353,38 @@ export class DocumentService {
         question.solution,
       );
       const solutionComponents = await this.renderMarkdown(sanitizedSolution);
+      const indentedSolutionTable =
+        this.createIndentedContentTable(solutionComponents);
 
       paragraphs.push(
         new Paragraph({
           children: [this.createBoldRun(`${labels.detailedSolutionLabel}: `)],
+          spacing: {
+            before: 120,
+            after: 60,
+          },
         }),
       );
-      paragraphs.push(...solutionComponents);
+
+      if (indentedSolutionTable) {
+        paragraphs.push(indentedSolutionTable);
+      }
     }
 
     paragraphs.push(
       new Paragraph({
         children: [this.createBoldRun(`${labels.metadataTitle}: `)],
+        spacing: {
+          before: 120,
+          after: 60,
+        },
       }),
-      this.createLabelParagraph(labels.gradeLabel, String(question.grade)),
-      this.createLabelParagraph(labels.textbookLabel, question.textbook),
-      this.createLabelParagraph(labels.unitLabel, question.unit),
-      this.createLabelParagraph(labels.lessonLabel, question.lesson),
-      this.createLabelParagraph(labels.typeLabel, question.type),
-      new Paragraph({}),
+      this.createMetadataTable(question, labels),
     );
+
+    if (!isLastQuestion) {
+      paragraphs.push(this.createSolutionBlockSeparator());
+    }
 
     return paragraphs;
   }
@@ -381,7 +400,13 @@ export class DocumentService {
 
       const answerLabel = String.fromCharCode(65 + question.answer);
 
-      return [this.createLabelParagraph(labels.answerLabel, answerLabel)];
+      return [
+        this.createLabelParagraph(labels.answerLabel, answerLabel, {
+          spacing: {
+            after: 60,
+          },
+        }),
+      ];
     }
 
     if (question.format === GeneratedQuestionFormat.TRUE_FALSE) {
@@ -392,6 +417,9 @@ export class DocumentService {
       const paragraphs: FileChild[] = [
         new Paragraph({
           children: [this.createBoldRun(`${labels.answersLabel}: `)],
+          spacing: {
+            after: 60,
+          },
         }),
       ];
 
@@ -399,7 +427,11 @@ export class DocumentService {
         const answerText = answer ? labels.trueLabel : labels.falseLabel;
         const choiceLetter = String.fromCharCode(97 + index);
         paragraphs.push(
-          this.createLabelParagraph(`${choiceLetter})`, answerText),
+          this.createLabelParagraph(`${choiceLetter})`, answerText, {
+            spacing: {
+              after: 40,
+            },
+          }),
         );
       }
 
@@ -415,19 +447,37 @@ export class DocumentService {
         question.answers,
       );
       const answerComponents = await this.renderMarkdown(sanitizedAnswers);
-
-      return [
+      const indentedAnswerTable =
+        this.createIndentedContentTable(answerComponents);
+      const paragraphs: FileChild[] = [
         new Paragraph({
           children: [this.createBoldRun(`${labels.answerLabel}: `)],
+          spacing: {
+            after: 60,
+          },
         }),
-        ...answerComponents,
       ];
+
+      if (indentedAnswerTable) {
+        paragraphs.push(indentedAnswerTable);
+      }
+
+      return paragraphs;
     }
 
     return [];
   }
 
-  private createLabelParagraph(label: string, value: string): Paragraph {
+  private createLabelParagraph(
+    label: string,
+    value: string,
+    options?: {
+      spacing?: {
+        before?: number;
+        after?: number;
+      };
+    },
+  ): Paragraph {
     return new Paragraph({
       children: [
         this.createBoldRun(`${label}: `),
@@ -436,6 +486,155 @@ export class DocumentService {
           font: 'Cambria Math',
         }),
       ],
+      spacing: options?.spacing,
+    });
+  }
+
+  private createMetadataTable(
+    question: GeneratedQuestionDto,
+    labels: LocaleDictionary,
+  ): Table {
+    const metadataEntries = [
+      {
+        label: labels.gradeLabel,
+        value: String(question.grade),
+      },
+      {
+        label: labels.textbookLabel,
+        value: question.textbook,
+      },
+      {
+        label: labels.unitLabel,
+        value: question.unit,
+      },
+      {
+        label: labels.lessonLabel,
+        value: question.lesson,
+      },
+      {
+        label: labels.typeLabel,
+        value: question.type,
+      },
+    ];
+    const rows: TableRow[] = [];
+
+    for (let i = 0; i < metadataEntries.length; i += 2) {
+      const leftEntry = metadataEntries[i];
+      const rightEntry = metadataEntries[i + 1];
+
+      rows.push(
+        new TableRow({
+          children: [
+            this.createMetadataCell(leftEntry.label, leftEntry.value),
+            rightEntry
+              ? this.createMetadataCell(rightEntry.label, rightEntry.value)
+              : this.createEmptyCell(),
+          ],
+        }),
+      );
+    }
+
+    return new Table({
+      rows,
+      width: {
+        size: 100,
+        type: WidthType.PERCENTAGE,
+      },
+      borders: {
+        ...DOCX_BORDER_NONE,
+        insideHorizontal: {
+          style: BorderStyle.NONE,
+          size: 0,
+          color: 'auto',
+        },
+        insideVertical: {
+          style: BorderStyle.NONE,
+          size: 0,
+          color: 'auto',
+        },
+      },
+    });
+  }
+
+  private createMetadataCell(label: string, value: string): TableCell {
+    return new TableCell({
+      children: [
+        this.createLabelParagraph(label, value, {
+          spacing: {
+            after: 40,
+          },
+        }),
+      ],
+      width: {
+        size: 50,
+        type: WidthType.PERCENTAGE,
+      },
+      borders: DOCX_BORDER_NONE,
+      verticalAlign: VerticalAlign.TOP,
+    });
+  }
+
+  private createIndentedContentTable(components: FileChild[]): Table | null {
+    const tableChildren = components.filter(
+      (component): component is Paragraph | Table =>
+        component instanceof Paragraph || component instanceof Table,
+    );
+
+    if (tableChildren.length === 0) {
+      return null;
+    }
+
+    return new Table({
+      rows: [
+        new TableRow({
+          children: [
+            new TableCell({
+              children: [],
+              width: {
+                size: 4,
+                type: WidthType.PERCENTAGE,
+              },
+              borders: DOCX_BORDER_NONE,
+            }),
+            new TableCell({
+              children: tableChildren,
+              width: {
+                size: 96,
+                type: WidthType.PERCENTAGE,
+              },
+              borders: DOCX_BORDER_NONE,
+              verticalAlign: VerticalAlign.TOP,
+            }),
+          ],
+        }),
+      ],
+      width: {
+        size: 100,
+        type: WidthType.PERCENTAGE,
+      },
+      borders: {
+        ...DOCX_BORDER_NONE,
+        insideHorizontal: {
+          style: BorderStyle.NONE,
+          size: 0,
+          color: 'auto',
+        },
+        insideVertical: {
+          style: BorderStyle.NONE,
+          size: 0,
+          color: 'auto',
+        },
+      },
+    });
+  }
+
+  private createSolutionBlockSeparator(): Paragraph {
+    return new Paragraph({
+      thematicBreak: true,
+      spacing: {
+        before: 180,
+        after: 180,
+      },
     });
   }
 
