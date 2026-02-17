@@ -50,7 +50,6 @@ type LocaleDictionary = {
   metadataTitle: string;
   questionPrefix: string;
   solutionsTitle: string;
-  statementLabel: string;
   textbookLabel: string;
   trueLabel: string;
   typeLabel: string;
@@ -69,7 +68,6 @@ const localeDictionary: Record<GenerateDocxLocale, LocaleDictionary> = {
     metadataTitle: 'Thông tin',
     questionPrefix: 'Câu',
     solutionsTitle: 'ĐÁP ÁN VÀ LỜI GIẢI CHI TIẾT',
-    statementLabel: 'Mệnh đề',
     textbookLabel: 'Sách giáo khoa',
     trueLabel: 'Đúng',
     typeLabel: 'Dạng',
@@ -86,7 +84,6 @@ const localeDictionary: Record<GenerateDocxLocale, LocaleDictionary> = {
     metadataTitle: 'Metadata',
     questionPrefix: 'Question',
     solutionsTitle: 'ANSWERS AND DETAILED SOLUTIONS',
-    statementLabel: 'Statement',
     textbookLabel: 'Textbook',
     trueLabel: 'True',
     typeLabel: 'Type',
@@ -314,9 +311,10 @@ export class DocumentService {
         const statementComponents =
           await this.renderMarkdown(sanitizedStatement);
 
+        const choiceLetter = String.fromCharCode(97 + statementIndex);
         this.prependPrefixToFirstParagraph(
           statementComponents,
-          `${labels.statementLabel} ${statementIndex + 1}: `,
+          `${choiceLetter}) `,
         );
         paragraphs.push(...statementComponents);
       }
@@ -454,11 +452,9 @@ export class DocumentService {
 
       for (const [index, answer] of question.answers.entries()) {
         const answerText = answer ? labels.trueLabel : labels.falseLabel;
+        const choiceLetter = String.fromCharCode(97 + index);
         paragraphs.push(
-          this.createLabelParagraph(
-            `${labels.statementLabel} ${index + 1}`,
-            answerText,
-          ),
+          this.createLabelParagraph(`${choiceLetter})`, answerText),
         );
       }
 
