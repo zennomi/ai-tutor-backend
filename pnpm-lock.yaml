@@ -53,6 +53,9 @@ importers:
       '@nestjs/typeorm':
         specifier: ^10.0.2
         version: 10.0.2(@nestjs/common@10.4.7(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.1))(@nestjs/core@10.4.7)(reflect-metadata@0.2.2)(rxjs@7.8.1)(typeorm@0.3.28(ioredis@5.4.1)(pg@8.13.1)(redis@4.7.0)(ts-node@10.9.2(@swc/core@1.7.42)(@types/node@22.8.7)(typescript@5.6.3)))
+      '@zennomi/markdown-docx':
+        specifier: ^1.5.1
+        version: 1.5.1
       argon2:
         specifier: ^0.41.1
         version: 0.41.1
@@ -89,9 +92,6 @@ importers:
       helmet:
         specifier: ^8.0.0
         version: 8.0.0
-      markdown-docx:
-        specifier: ^1.5.1
-        version: 1.5.1
       ms:
         specifier: ^2.1.3
         version: 2.1.3
@@ -2282,6 +2282,10 @@ packages:
   '@xtuc/long@4.2.2':
     resolution: {integrity: sha512-NuHqBY1PB/D8xU6s/thBgOAiAP7HOYDQ32+BFZILJ8ivkUkAHQnWfn6WhL79Owj1qmUnoN/YPhktdIoucipkAQ==}
 
+  '@zennomi/markdown-docx@1.5.1':
+    resolution: {integrity: sha512-hje26nFtQl4HCWmUHT3HQvYrrmohzxq3wq/MlupL9ApJPwTXbByYgdjFjLdPj0BjnRwvEJFpaAiV9DUDhUR4Tw==}
+    hasBin: true
+
   JSONStream@1.3.5:
     resolution: {integrity: sha512-E+iruNOY8VV9s4JEbe1aNEm6MiszPRr/UfcHMz0TQh1BXSxHK+ASV1R6W4HpjBhSeS+54PIsAMCBmwD06LLsqQ==}
     hasBin: true
@@ -3549,8 +3553,8 @@ packages:
   fast-uri@3.0.1:
     resolution: {integrity: sha512-MWipKbbYiYI0UC7cl8m/i/IWTqfC8YXsqjzybjddLsFjStroQzsHXkc73JutMvBiXmOvapk+axIl79ig5t55Bw==}
 
-  fast-xml-parser@5.3.4:
-    resolution: {integrity: sha512-EFd6afGmXlCx8H8WTZHhAoDaWaGyuIBoZJ2mknrNxug+aZKjkp0a0dlars9Izl+jF+7Gu1/5f/2h68cQpe0IiA==}
+  fast-xml-parser@5.3.6:
+    resolution: {integrity: sha512-QNI3sAvSvaOiaMl8FYU4trnEzCwiRr8XMWgAHzlrWpTSj+QaCSvOf1h82OEP1s4hiAXhnbXSyFWCf4ldZzZRVA==}
     hasBin: true
 
   fastq@1.17.1:
@@ -4708,10 +4712,6 @@ packages:
 
   map-or-similar@1.5.0:
     resolution: {integrity: sha512-0aF7ZmVon1igznGI4VS30yugpduQW3y3GkcgGJOp7d8x8QrizhigUxjI/m2UojsXXto+jLAH3KSz+xOJTiORjg==}
-
-  markdown-docx@1.5.1:
-    resolution: {integrity: sha512-4mCZ/yVNiles3Yp5211OFLqctMywoGkfMcSxaes6u2zTMaa/N2DwAJPpidt0DxDA+mekD5oo0Zk8QooY8VVkLA==}
-    hasBin: true
 
   markdown-it-anchor@9.2.0:
     resolution: {integrity: sha512-sa2ErMQ6kKOA4l31gLGYliFQrMKkqSO0ZJgGhDHKijPf0pNFM9vghjAh3gn26pS4JDRs7Iwa9S36gxm3vgZTzg==}
@@ -9391,6 +9391,15 @@ snapshots:
 
   '@xtuc/long@4.2.2': {}
 
+  '@zennomi/markdown-docx@1.5.1':
+    dependencies:
+      commander: 13.1.0
+      docx: 9.5.1
+      fast-xml-parser: 5.3.6
+      image-size: 2.0.2
+      katex: 0.16.28
+      marked: 15.0.12
+
   JSONStream@1.3.5:
     dependencies:
       jsonparse: 1.3.1
@@ -10816,7 +10825,7 @@ snapshots:
 
   fast-uri@3.0.1: {}
 
-  fast-xml-parser@5.3.4:
+  fast-xml-parser@5.3.6:
     dependencies:
       strnum: 2.1.2
 
@@ -12245,15 +12254,6 @@ snapshots:
       tmpl: 1.0.5
 
   map-or-similar@1.5.0: {}
-
-  markdown-docx@1.5.1:
-    dependencies:
-      commander: 13.1.0
-      docx: 9.5.1
-      fast-xml-parser: 5.3.4
-      image-size: 2.0.2
-      katex: 0.16.28
-      marked: 15.0.12
 
   markdown-it-anchor@9.2.0(@types/markdown-it@14.1.2)(markdown-it@14.1.0):
     dependencies:

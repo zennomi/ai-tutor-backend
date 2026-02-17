@@ -12,6 +12,7 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { MarkdownDocx } from '@zennomi/markdown-docx';
 import {
   AlignmentType,
   BorderStyle,
@@ -26,8 +27,6 @@ import {
   VerticalAlign,
   WidthType,
 } from 'docx';
-import type { Express } from 'express';
-import { MarkdownDocx } from 'markdown-docx';
 
 import type { AllConfigType } from '@/config/config.type';
 import { FileStorageService } from '@/libs/file-storage/file-storage.service';
