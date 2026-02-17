@@ -14,7 +14,7 @@ export class CurriculumExerciseController {
   ) {}
 
   @Get()
-  @ApiOperation({ summary: 'List exercises with optional search' })
+  @ApiOperation({ summary: 'List exercises with optional filters and search' })
   @ApiPaginatedResponse({
     type: SearchExercisesResDto,
     paginationType: 'offset',

@@ -33,7 +33,67 @@ import type { AllConfigType } from '@/config/config.type';
 import { FileStorageService } from '@/libs/file-storage/file-storage.service';
 
 import { ConvertDocxToMarkdownDto } from './dto/convert-docx-to-markdown.dto';
-import { GenerateDocxDto } from './dto/generate-docx.dto';
+import {
+  GenerateDocxDto,
+  GenerateDocxLocale,
+  type GeneratedQuestionDto,
+  GeneratedQuestionFormat,
+} from './dto/generate-docx.dto';
+
+type LocaleDictionary = {
+  answerLabel: string;
+  answersLabel: string;
+  defaultTitle: string;
+  detailedSolutionLabel: string;
+  falseLabel: string;
+  gradeLabel: string;
+  lessonLabel: string;
+  metadataTitle: string;
+  questionPrefix: string;
+  solutionsTitle: string;
+  statementLabel: string;
+  textbookLabel: string;
+  trueLabel: string;
+  typeLabel: string;
+  unitLabel: string;
+};
+
+const localeDictionary: Record<GenerateDocxLocale, LocaleDictionary> = {
+  [GenerateDocxLocale.VI]: {
+    answerLabel: 'Đáp án',
+    answersLabel: 'Các đáp án',
+    defaultTitle: 'Bài kiểm tra',
+    detailedSolutionLabel: 'Lời giải chi tiết',
+    falseLabel: 'Sai',
+    gradeLabel: 'Khối',
+    lessonLabel: 'Bài',
+    metadataTitle: 'Thông tin',
+    questionPrefix: 'Câu',
+    solutionsTitle: 'ĐÁP ÁN VÀ LỜI GIẢI CHI TIẾT',
+    statementLabel: 'Mệnh đề',
+    textbookLabel: 'Sách giáo khoa',
+    trueLabel: 'Đúng',
+    typeLabel: 'Dạng',
+    unitLabel: 'Chương',
+  },
+  [GenerateDocxLocale.EN]: {
+    answerLabel: 'Answer',
+    answersLabel: 'Answers',
+    defaultTitle: 'Test',
+    detailedSolutionLabel: 'Detailed solution',
+    falseLabel: 'False',
+    gradeLabel: 'Grade',
+    lessonLabel: 'Lesson',
+    metadataTitle: 'Metadata',
+    questionPrefix: 'Question',
+    solutionsTitle: 'ANSWERS AND DETAILED SOLUTIONS',
+    statementLabel: 'Statement',
+    textbookLabel: 'Textbook',
+    trueLabel: 'True',
+    typeLabel: 'Type',
+    unitLabel: 'Unit',
+  },
+};
 
 @Injectable()
 export class DocumentService {
@@ -51,13 +111,20 @@ export class DocumentService {
     private readonly fileStorageService: FileStorageService,
   ) {}
 
-  async generateDocx({ title, exercises }: GenerateDocxDto) {
+  async generateDocx({ title, locale, questions, options }: GenerateDocxDto) {
     const paragraphs: FileChild[] = [];
+    const localeKey = locale ?? GenerateDocxLocale.VI;
+    const labels = localeDictionary[localeKey];
+    const includeSolutions = options?.includeSolutions ?? true;
+    const preparedQuestions = this.prepareQuestions(questions, {
+      shuffleChoices: options?.shuffleChoices,
+      shuffleQuestions: options?.shuffleQuestions,
+    });
 
     const titleParagraph = new Paragraph({
       children: [
         new TextRun({
-          text: title || 'Bài kiểm tra',
+          text: title || labels.defaultTitle,
           font: 'Cambria Math',
           bold: true,
         }),
@@ -68,131 +135,37 @@ export class DocumentService {
     const questionParagraphs: FileChild[] = [];
     const solutionParagraphs: FileChild[] = [];
 
-    for (const [index, exercise] of exercises.entries()) {
-      // --- Questions Section ---
-      const sanitizedQuestion = this.sanitizeEquationDelimiters(
-        exercise.question,
+    for (const [index, question] of preparedQuestions.entries()) {
+      const questionComponents = await this.renderQuestion(
+        question,
+        index,
+        labels,
       );
-      const questionComponents = await this.renderMarkdown(sanitizedQuestion);
-
-      if (questionComponents[0] instanceof Paragraph) {
-        questionComponents[0].addRunToFront(
-          new TextRun({
-            text: `Câu ${index + 1}: `,
-            bold: true,
-            font: 'Cambria Math',
-          }),
-        );
-      }
       questionParagraphs.push(...questionComponents);
-      if (exercise.choices?.length) {
-        const rows: TableRow[] = [];
-        for (let i = 0; i < exercise.choices.length; i += 2) {
-          const cells: TableCell[] = [];
 
-          cells.push(await this.createChoiceCell(exercise.choices[i], i));
-
-          if (i + 1 < exercise.choices.length) {
-            cells.push(
-              await this.createChoiceCell(exercise.choices[i + 1], i + 1),
-            );
-          } else {
-            // Empty cell for alignment
-            cells.push(this.createEmptyCell());
-          }
-
-          rows.push(new TableRow({ children: cells }));
-        }
-
-        questionParagraphs.push(
-          new Table({
-            rows: rows,
-            width: {
-              size: 100,
-              type: WidthType.PERCENTAGE,
-            },
-            borders: {
-              ...this.borderNone,
-              insideHorizontal: {
-                style: BorderStyle.NONE,
-                size: 0,
-                color: 'auto',
-              },
-              insideVertical: {
-                style: BorderStyle.NONE,
-                size: 0,
-                color: 'auto',
-              },
-            },
-          }),
-        );
+      if (!includeSolutions) {
+        continue;
       }
 
-      // --- Solutions Section ---
-      if (exercise.key || exercise.solution) {
-        solutionParagraphs.push(
-          new Paragraph({
-            children: [
-              new TextRun({
-                text: `Câu ${index + 1}: `,
-                bold: true,
-                font: 'Cambria Math',
-              }),
-            ],
-          }),
-        );
-
-        if (exercise.key) {
-          const sanitizedKey = this.sanitizeEquationDelimiters(exercise.key);
-          solutionParagraphs.push(
-            new Paragraph({
-              children: [
-                new TextRun({
-                  text: 'Đáp án: ',
-                  bold: true,
-                  font: 'Cambria Math',
-                }),
-                new TextRun({ text: sanitizedKey, font: 'Cambria Math' }),
-              ],
-            }),
-          );
-        }
-
-        if (exercise.solution) {
-          const sanitizedSolution = this.sanitizeEquationDelimiters(
-            exercise.solution,
-          );
-          const solutionComponents =
-            await this.renderMarkdown(sanitizedSolution);
-          solutionParagraphs.push(
-            new Paragraph({
-              children: [
-                new TextRun({
-                  text: 'Lời giải chi tiết: ',
-                  bold: true,
-                  font: 'Cambria Math',
-                }),
-              ],
-            }),
-          );
-          solutionParagraphs.push(...solutionComponents);
-        }
-
-        solutionParagraphs.push(new Paragraph({}));
-      }
+      const questionSolutions = await this.renderQuestionSolution(
+        question,
+        index,
+        labels,
+      );
+      solutionParagraphs.push(...questionSolutions);
     }
 
     paragraphs.push(...questionParagraphs);
 
-    if (solutionParagraphs.length > 0) {
+    if (includeSolutions && solutionParagraphs.length > 0) {
       paragraphs.push(
         new Paragraph({
           children: [
             new TextRun({
-              text: 'ĐÁP ÁN VÀ LỜI GIẢI CHI TIẾT',
+              text: labels.solutionsTitle,
               bold: true,
               font: 'Cambria Math',
-              size: 28, // 14pt
+              size: 28,
             }),
           ],
           alignment: AlignmentType.CENTER,
@@ -225,7 +198,7 @@ export class DocumentService {
     });
 
     const buffer = Buffer.from(doc);
-    const filename = this.buildFileName(title, exercises.length);
+    const filename = this.buildFileName(title, preparedQuestions.length);
     const url = await this.fileStorageService.saveFile(
       buffer,
       filename,
@@ -238,6 +211,300 @@ export class DocumentService {
       filename,
       path: relativePath,
     };
+  }
+
+  private prepareQuestions(
+    questions: GeneratedQuestionDto[],
+    options: {
+      shuffleChoices?: boolean;
+      shuffleQuestions?: boolean;
+    },
+  ): GeneratedQuestionDto[] {
+    const clonedQuestions = questions.map((question) =>
+      this.cloneQuestion(question),
+    );
+
+    const questionsWithPreparedChoices = options.shuffleChoices
+      ? clonedQuestions.map((question) => this.shuffleMultipleChoice(question))
+      : clonedQuestions;
+
+    if (!options.shuffleQuestions) {
+      return questionsWithPreparedChoices;
+    }
+
+    return this.shuffleArray(questionsWithPreparedChoices);
+  }
+
+  private cloneQuestion(question: GeneratedQuestionDto): GeneratedQuestionDto {
+    return {
+      ...question,
+      answers: Array.isArray(question.answers)
+        ? [...question.answers]
+        : question.answers,
+      choices: question.choices ? [...question.choices] : undefined,
+      statements: question.statements ? [...question.statements] : undefined,
+    };
+  }
+
+  private shuffleMultipleChoice(
+    question: GeneratedQuestionDto,
+  ): GeneratedQuestionDto {
+    if (
+      question.format !== GeneratedQuestionFormat.MULTIPLE_CHOICE ||
+      !question.choices?.length ||
+      typeof question.answer !== 'number'
+    ) {
+      return question;
+    }
+
+    const indexedChoices = question.choices.map((choice, index) => ({
+      choice,
+      index,
+    }));
+    const shuffledChoices = this.shuffleArray(indexedChoices);
+    const remappedAnswer = shuffledChoices.findIndex(
+      (choice) => choice.index === question.answer,
+    );
+
+    return {
+      ...question,
+      answer: remappedAnswer,
+      choices: shuffledChoices.map((choice) => choice.choice),
+    };
+  }
+
+  private shuffleArray<T>(items: T[]): T[] {
+    const output = [...items];
+
+    for (let i = output.length - 1; i > 0; i -= 1) {
+      const randomIndex = Math.floor(Math.random() * (i + 1));
+      [output[i], output[randomIndex]] = [output[randomIndex], output[i]];
+    }
+
+    return output;
+  }
+
+  private async renderQuestion(
+    question: GeneratedQuestionDto,
+    index: number,
+    labels: LocaleDictionary,
+  ): Promise<FileChild[]> {
+    const paragraphs: FileChild[] = [];
+    const sanitizedQuestion = this.sanitizeEquationDelimiters(
+      question.question,
+    );
+    const questionComponents = await this.renderMarkdown(sanitizedQuestion);
+
+    this.prependPrefixToFirstParagraph(
+      questionComponents,
+      `${labels.questionPrefix} ${index + 1}: `,
+    );
+    paragraphs.push(...questionComponents);
+
+    if (question.format === GeneratedQuestionFormat.MULTIPLE_CHOICE) {
+      if (question.choices?.length) {
+        paragraphs.push(await this.createChoicesTable(question.choices));
+      }
+    }
+
+    if (question.format === GeneratedQuestionFormat.TRUE_FALSE) {
+      for (const [statementIndex, statement] of (
+        question.statements ?? []
+      ).entries()) {
+        const sanitizedStatement = this.sanitizeEquationDelimiters(statement);
+        const statementComponents =
+          await this.renderMarkdown(sanitizedStatement);
+
+        this.prependPrefixToFirstParagraph(
+          statementComponents,
+          `${labels.statementLabel} ${statementIndex + 1}: `,
+        );
+        paragraphs.push(...statementComponents);
+      }
+    }
+
+    paragraphs.push(new Paragraph({}));
+
+    return paragraphs;
+  }
+
+  private prependPrefixToFirstParagraph(
+    components: FileChild[],
+    prefix: string,
+  ): void {
+    if (components[0] instanceof Paragraph) {
+      components[0].addRunToFront(this.createBoldRun(prefix));
+      return;
+    }
+
+    components.unshift(
+      new Paragraph({
+        children: [this.createBoldRun(prefix)],
+      }),
+    );
+  }
+
+  private async createChoicesTable(choices: string[]): Promise<Table> {
+    const rows: TableRow[] = [];
+
+    for (let i = 0; i < choices.length; i += 2) {
+      const cells: TableCell[] = [];
+
+      cells.push(await this.createChoiceCell(choices[i], i));
+
+      if (i + 1 < choices.length) {
+        cells.push(await this.createChoiceCell(choices[i + 1], i + 1));
+      } else {
+        cells.push(this.createEmptyCell());
+      }
+
+      rows.push(new TableRow({ children: cells }));
+    }
+
+    return new Table({
+      rows,
+      width: {
+        size: 100,
+        type: WidthType.PERCENTAGE,
+      },
+      borders: {
+        ...this.borderNone,
+        insideHorizontal: {
+          style: BorderStyle.NONE,
+          size: 0,
+          color: 'auto',
+        },
+        insideVertical: {
+          style: BorderStyle.NONE,
+          size: 0,
+          color: 'auto',
+        },
+      },
+    });
+  }
+
+  private async renderQuestionSolution(
+    question: GeneratedQuestionDto,
+    index: number,
+    labels: LocaleDictionary,
+  ): Promise<FileChild[]> {
+    const paragraphs: FileChild[] = [
+      new Paragraph({
+        children: [
+          this.createBoldRun(`${labels.questionPrefix} ${index + 1}: `),
+        ],
+      }),
+    ];
+
+    const answerParagraphs = await this.buildAnswerParagraphs(question, labels);
+    paragraphs.push(...answerParagraphs);
+
+    if (question.solution) {
+      const sanitizedSolution = this.sanitizeEquationDelimiters(
+        question.solution,
+      );
+      const solutionComponents = await this.renderMarkdown(sanitizedSolution);
+
+      paragraphs.push(
+        new Paragraph({
+          children: [this.createBoldRun(`${labels.detailedSolutionLabel}: `)],
+        }),
+      );
+      paragraphs.push(...solutionComponents);
+    }
+
+    paragraphs.push(
+      new Paragraph({
+        children: [this.createBoldRun(`${labels.metadataTitle}: `)],
+      }),
+      this.createLabelParagraph(labels.gradeLabel, String(question.grade)),
+      this.createLabelParagraph(labels.textbookLabel, question.textbook),
+      this.createLabelParagraph(labels.unitLabel, question.unit),
+      this.createLabelParagraph(labels.lessonLabel, question.lesson),
+      this.createLabelParagraph(labels.typeLabel, question.type),
+      new Paragraph({}),
+    );
+
+    return paragraphs;
+  }
+
+  private async buildAnswerParagraphs(
+    question: GeneratedQuestionDto,
+    labels: LocaleDictionary,
+  ): Promise<FileChild[]> {
+    if (question.format === GeneratedQuestionFormat.MULTIPLE_CHOICE) {
+      if (typeof question.answer !== 'number') {
+        return [];
+      }
+
+      const answerLabel = String.fromCharCode(65 + question.answer);
+
+      return [this.createLabelParagraph(labels.answerLabel, answerLabel)];
+    }
+
+    if (question.format === GeneratedQuestionFormat.TRUE_FALSE) {
+      if (!Array.isArray(question.answers)) {
+        return [];
+      }
+
+      const paragraphs: FileChild[] = [
+        new Paragraph({
+          children: [this.createBoldRun(`${labels.answersLabel}: `)],
+        }),
+      ];
+
+      for (const [index, answer] of question.answers.entries()) {
+        const answerText = answer ? labels.trueLabel : labels.falseLabel;
+        paragraphs.push(
+          this.createLabelParagraph(
+            `${labels.statementLabel} ${index + 1}`,
+            answerText,
+          ),
+        );
+      }
+
+      return paragraphs;
+    }
+
+    if (question.format === GeneratedQuestionFormat.ESSAY) {
+      if (typeof question.answers !== 'string') {
+        return [];
+      }
+
+      const sanitizedAnswers = this.sanitizeEquationDelimiters(
+        question.answers,
+      );
+      const answerComponents = await this.renderMarkdown(sanitizedAnswers);
+
+      return [
+        new Paragraph({
+          children: [this.createBoldRun(`${labels.answerLabel}: `)],
+        }),
+        ...answerComponents,
+      ];
+    }
+
+    return [];
+  }
+
+  private createLabelParagraph(label: string, value: string): Paragraph {
+    return new Paragraph({
+      children: [
+        this.createBoldRun(`${label}: `),
+        new TextRun({
+          text: value,
+          font: 'Cambria Math',
+        }),
+      ],
+    });
+  }
+
+  private createBoldRun(text: string): TextRun {
+    return new TextRun({
+      text,
+      bold: true,
+      font: 'Cambria Math',
+    });
   }
 
   async convertDocxToMarkdown(
