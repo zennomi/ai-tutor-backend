@@ -28,7 +28,13 @@ import {
   WidthType,
 } from 'docx';
 
+import type { LocaleDictionary } from '@/common/types/document.type';
 import type { AllConfigType } from '@/config/config.type';
+import {
+  DOCX_BORDER_NONE,
+  LOCALE_DICTIONARY,
+  MARKITDOWN_TIMEOUT_MS,
+} from '@/constants/document.constant';
 import { FileStorageService } from '@/libs/file-storage/file-storage.service';
 
 import { ConvertDocxToMarkdownDto } from './dto/convert-docx-to-markdown.dto';
@@ -39,69 +45,8 @@ import {
   GeneratedQuestionFormat,
 } from './dto/generate-docx.dto';
 
-type LocaleDictionary = {
-  answerLabel: string;
-  answersLabel: string;
-  defaultTitle: string;
-  detailedSolutionLabel: string;
-  falseLabel: string;
-  gradeLabel: string;
-  lessonLabel: string;
-  metadataTitle: string;
-  questionPrefix: string;
-  solutionsTitle: string;
-  textbookLabel: string;
-  trueLabel: string;
-  typeLabel: string;
-  unitLabel: string;
-};
-
-const localeDictionary: Record<GenerateDocxLocale, LocaleDictionary> = {
-  [GenerateDocxLocale.VI]: {
-    answerLabel: 'Đáp án',
-    answersLabel: 'Các đáp án',
-    defaultTitle: 'Bài kiểm tra',
-    detailedSolutionLabel: 'Lời giải chi tiết',
-    falseLabel: 'Sai',
-    gradeLabel: 'Khối',
-    lessonLabel: 'Bài',
-    metadataTitle: 'Thông tin',
-    questionPrefix: 'Câu',
-    solutionsTitle: 'ĐÁP ÁN VÀ LỜI GIẢI CHI TIẾT',
-    textbookLabel: 'Sách giáo khoa',
-    trueLabel: 'Đúng',
-    typeLabel: 'Dạng',
-    unitLabel: 'Chương',
-  },
-  [GenerateDocxLocale.EN]: {
-    answerLabel: 'Answer',
-    answersLabel: 'Answers',
-    defaultTitle: 'Test',
-    detailedSolutionLabel: 'Detailed solution',
-    falseLabel: 'False',
-    gradeLabel: 'Grade',
-    lessonLabel: 'Lesson',
-    metadataTitle: 'Metadata',
-    questionPrefix: 'Question',
-    solutionsTitle: 'ANSWERS AND DETAILED SOLUTIONS',
-    textbookLabel: 'Textbook',
-    trueLabel: 'True',
-    typeLabel: 'Type',
-    unitLabel: 'Unit',
-  },
-};
-
 @Injectable()
 export class DocumentService {
-  private readonly borderNone = {
-    top: { style: BorderStyle.NONE, size: 0, color: 'auto' },
-    bottom: { style: BorderStyle.NONE, size: 0, color: 'auto' },
-    left: { style: BorderStyle.NONE, size: 0, color: 'auto' },
-    right: { style: BorderStyle.NONE, size: 0, color: 'auto' },
-  };
-
-  private readonly markitdownTimeoutMs = 15_000;
-
   constructor(
     private readonly configService: ConfigService<AllConfigType>,
     private readonly fileStorageService: FileStorageService,
@@ -110,7 +55,7 @@ export class DocumentService {
   async generateDocx({ title, locale, questions, options }: GenerateDocxDto) {
     const paragraphs: FileChild[] = [];
     const localeKey = locale ?? GenerateDocxLocale.VI;
-    const labels = localeDictionary[localeKey];
+    const labels = LOCALE_DICTIONARY[localeKey];
     const includeSolutions = options?.includeSolutions ?? true;
     const preparedQuestions = this.prepareQuestions(questions, {
       shuffleChoices: options?.shuffleChoices,
@@ -365,7 +310,7 @@ export class DocumentService {
         type: WidthType.PERCENTAGE,
       },
       borders: {
-        ...this.borderNone,
+        ...DOCX_BORDER_NONE,
         insideHorizontal: {
           style: BorderStyle.NONE,
           size: 0,
@@ -562,7 +507,7 @@ export class DocumentService {
       const timer = setTimeout(() => {
         didTimeout = true;
         processRunner.kill('SIGKILL');
-      }, this.markitdownTimeoutMs);
+      }, MARKITDOWN_TIMEOUT_MS);
 
       processRunner.stdout.on('data', (data: Buffer) => {
         stdout += data.toString('utf8');
@@ -681,7 +626,7 @@ export class DocumentService {
         size: 50,
         type: WidthType.PERCENTAGE,
       },
-      borders: this.borderNone,
+      borders: DOCX_BORDER_NONE,
       verticalAlign: VerticalAlign.CENTER,
     });
   }
@@ -690,7 +635,7 @@ export class DocumentService {
     return new TableCell({
       children: [],
       width: { size: 50, type: WidthType.PERCENTAGE },
-      borders: this.borderNone,
+      borders: DOCX_BORDER_NONE,
       verticalAlign: VerticalAlign.CENTER,
     });
   }

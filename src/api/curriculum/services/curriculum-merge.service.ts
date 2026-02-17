@@ -10,6 +10,7 @@ import { LessonEntity } from '@/api/curriculum/entities/lesson.entity';
 import { TextbookEntity } from '@/api/curriculum/entities/textbook.entity';
 import { UnitEntity } from '@/api/curriculum/entities/unit.entity';
 import { Uuid } from '@/common/types/common.type';
+import type { CurriculumMergeResult } from '@/common/types/curriculum.type';
 import {
   BadRequestException,
   Injectable,
@@ -17,19 +18,6 @@ import {
 } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource, FindOptionsWhere, IsNull, Repository } from 'typeorm';
-
-export interface CurriculumMergeResult {
-  table: CurriculumMergeTable;
-  sourceId: string;
-  destinationId: string;
-  updatedCounts: {
-    textbooks?: number;
-    lessons?: number;
-    exercises?: number;
-    exerciseTypes?: number;
-  };
-  deleted: boolean;
-}
 
 @Injectable()
 export class CurriculumMergeService {

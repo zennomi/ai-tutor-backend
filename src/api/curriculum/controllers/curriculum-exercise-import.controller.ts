@@ -1,4 +1,5 @@
 import { JwtPayloadType } from '@/api/auth/types/jwt-payload.type';
+import type { ImportResult } from '@/common/types/curriculum.type';
 import { SYSTEM_USER_ID } from '@/constants/app.constant';
 import { CurrentUser } from '@/decorators/current-user.decorator';
 import { Body, Controller, Post } from '@nestjs/common';
@@ -12,10 +13,7 @@ import {
   BulkExerciseImportDto,
   BulkExerciseImportItemDto,
 } from '../dto/bulk-exercise-import.dto';
-import {
-  CurriculumExerciseImportService,
-  ImportResult,
-} from '../services/curriculum-exercise-import.service';
+import { CurriculumExerciseImportService } from '../services/curriculum-exercise-import.service';
 
 @ApiTags('curriculum')
 @Controller({

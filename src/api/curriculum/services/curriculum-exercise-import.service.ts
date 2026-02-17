@@ -1,4 +1,5 @@
 import { Uuid } from '@/common/types/common.type';
+import type { ImportResult } from '@/common/types/curriculum.type';
 import { Injectable } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource, IsNull, Raw } from 'typeorm';
@@ -10,16 +11,6 @@ import { GradeEntity } from '../entities/grade.entity';
 import { LessonEntity } from '../entities/lesson.entity';
 import { TextbookEntity } from '../entities/textbook.entity';
 import { UnitEntity } from '../entities/unit.entity';
-
-export interface ImportResult {
-  inserted: number;
-  duplicateExercise: BulkExerciseImportItemDto[];
-  newGrades: string[];
-  newUnits: string[];
-  newLessons: string[];
-  newFormats: string[];
-  newTypes: string[];
-}
 
 @Injectable()
 export class CurriculumExerciseImportService {

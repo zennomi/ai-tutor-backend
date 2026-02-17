@@ -1,23 +1,12 @@
+import type {
+  BackfillOptions,
+  BackfillResult,
+} from '@/common/types/curriculum.type';
 import { EmbeddingService } from '@/libs/embedding/embedding.service';
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { ExerciseEntity } from '../entities/exercise.entity';
-
-export interface BackfillOptions {
-  batchSize?: number;
-  limit?: number;
-  skipExisting?: boolean;
-  dryRun?: boolean;
-}
-
-export interface BackfillResult {
-  updated: number;
-  skipped: number;
-  batches: number;
-  promptTokens?: number;
-  totalTokens?: number;
-}
 
 @Injectable()
 export class CurriculumExerciseEmbeddingBackfillService {

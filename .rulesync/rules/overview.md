@@ -27,6 +27,7 @@ globs: ['**/*']
 - Shared/global pieces: `src/common`, `src/shared`, `src/constants`, `src/utils`.
 - Generated code belongs in `src/generated/` — do not edit manually.
 - Keep business logic in services; controllers stay thin; DTOs handle validation/transform (class-validator/transformer).
+- Do not define types or constants inside services. Put types in `src/common/types/` (e.g. `types/curriculum.type.ts`, `types/document.type.ts`) and constants in `src/constants/` (e.g. `document.constant.ts`). Services should import from these locations.
 
 ## Code style deviations to remember
 
