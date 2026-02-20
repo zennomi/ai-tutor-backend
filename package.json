@@ -31,7 +31,8 @@
     "embeddings:backfill": "env-cmd ts-node src/scripts/backfill-exercise-embeddings.ts",
     "docs:dev": "vuepress dev docs",
     "docs:build": "vuepress build docs",
-    "jwt:generate": "env-cmd ts-node src/scripts/helpers/generate-jwt.ts"
+    "jwt:generate": "env-cmd ts-node src/scripts/helpers/generate-jwt.ts",
+    "markdown-docx:test": "env-cmd ts-node -r tsconfig-paths/register src/scripts/test-markdown-docx.ts"
   },
   "dependencies": {
     "@mohtasham/md-to-docx": "^2.6.1",

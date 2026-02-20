@@ -427,9 +427,16 @@ export class DocumentService {
         const answerText = answer ? labels.trueLabel : labels.falseLabel;
         const choiceLetter = String.fromCharCode(97 + index);
         paragraphs.push(
-          this.createLabelParagraph(`${choiceLetter})`, answerText, {
+          new Paragraph({
+            children: [
+              this.createBoldRun(`${choiceLetter}) `),
+              new TextRun({
+                text: answerText,
+                font: 'Cambria Math',
+              }),
+            ],
             spacing: {
-              after: 40,
+              after: 60,
             },
           }),
         );
